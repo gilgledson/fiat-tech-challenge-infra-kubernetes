@@ -143,7 +143,7 @@ Os mesmos valores vão como secrets do GitHub nos repositórios dos serviços:
 | Secret no GitHub | Repositórios | Valor |
 |---|---|---|
 | `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | os três serviços | os do Secret `rabbitmq-credentials` |
-| `MONGODB_URL` | `oficina-execution-service` | `mongodb://<usuario>:<senha>@mongodb.default.svc.cluster.local:27017/?authSource=admin` |
+| `EXECUTION_MONGODB_URL` | `oficina-execution-service` | `mongodb://<usuario>:<senha>@mongodb.default.svc.cluster.local:27017/?authSource=admin` |
 
 Para abrir o painel do RabbitMQ: `kubectl port-forward svc/rabbitmq 15672:15672`.
 
