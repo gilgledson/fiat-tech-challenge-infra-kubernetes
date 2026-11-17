@@ -5,6 +5,8 @@ metadata:
   namespace: gateway
 spec:
   replicas: 1
+  strategy:
+    type: Recreate # o volume dos certificados é ReadWriteOnce
   selector:
     matchLabels:
       app: traefik
@@ -24,6 +26,16 @@ spec:
             - --providers.kubernetesingress
             - --providers.kubernetesingress.ingressclass=traefik
             - --entrypoints.web.address=:80
+            # HTTPS com certificado do Let's Encrypt, emitido e renovado pelo
+            # próprio Traefik. O TLS fica no entrypoint, então vale para todos
+            # os Ingress sem mexer nos manifestos dos serviços. O HTTP
+            # continua respondendo, para não quebrar quem já usa o IP.
+            - --entrypoints.websecure.address=:443
+            - --entrypoints.websecure.http.tls.certresolver=letsencrypt
+            - --entrypoints.websecure.http.tls.domains[0].main=oficina-fiap.brazilsouth.cloudapp.azure.com
+            - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+            - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+            - --certificatesresolvers.letsencrypt.acme.storage=/data/acme.json
             - --entrypoints.traefik.address=:8080
             - --accesslog=true
           resources:
@@ -36,6 +48,8 @@ spec:
           ports:
             - name: web
               containerPort: 80
+            - name: websecure
+              containerPort: 443
             - name: dashboard
               containerPort: 8080
           readinessProbe:
@@ -48,3 +62,24 @@ spec:
               path: /ping
               port: 8080
             initialDelaySeconds: 10
+          volumeMounts:
+            - name: certificados
+              mountPath: /data
+      volumes:
+        - name: certificados
+          persistentVolumeClaim:
+            claimName: traefik-certificados
+---
+# Guarda o certificado entre reinícios do Traefik. Sem isso, cada reinício
+# pediria um certificado novo, e o Let's Encrypt limita os pedidos por domínio.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: traefik-certificados
+  namespace: gateway
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

@@ -70,6 +70,22 @@ Postgres vem do repositório de banco.
 O prefixo mais específico ganha da rota `/`, então os Ingress do Billing e do
 Execution têm prioridade sobre o do OS Service.
 
+### HTTPS
+
+O gateway responde em `https://oficina-fiap.brazilsouth.cloudapp.azure.com`,
+um nome gratuito da Azure ligado ao IP público pela anotação
+`service.beta.kubernetes.io/azure-dns-label-name` do Service do Traefik.
+
+O certificado é do Let's Encrypt, pedido e renovado pelo próprio Traefik
+(desafio HTTP na porta 80) e guardado no volume `traefik-certificados`, para
+não ser pedido de novo a cada reinício. O TLS fica no entrypoint `websecure`,
+então vale para todos os Ingress sem mudar os manifestos dos serviços. A porta
+80 continua respondendo.
+
+O HTTPS é exigido pelo webhook do Mercado Pago, cadastrado na aplicação de
+teste com o endereço
+`https://oficina-fiap.brazilsouth.cloudapp.azure.com/api/orcamentos/webhooks/mercadopago`.
+
 ## Tecnologias
 
 - Terraform (`provider "azurerm"`) — AKS, Resource Group
