@@ -6,8 +6,8 @@ resource "azurerm_kubernetes_cluster" "oficina_aks" {
 
   default_node_pool {
     name       = "default"
-    node_count = 1
-    vm_size    = "Standard_D2s_v3" # Tentativa de VM D-series v3
+    node_count = var.node_count
+    vm_size    = var.node_vm_size
   }
 
   identity {
