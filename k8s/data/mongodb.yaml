@@ -1,0 +1,89 @@
+# MongoDB do Execution Service (banco NoSQL da Fase 4). Só o Execution Service
+# acessa este banco; nenhum outro serviço lê ou grava aqui.
+#
+# Depende do Secret "mongodb-credentials" (chaves "username" e "password"),
+# criado à mão antes do apply — ver o README.
+#
+# Roda dentro do cluster, com volume persistente, em vez de um serviço
+# gerenciado (Cosmos DB para MongoDB): é o mesmo MongoDB 7 usado nos testes
+# integrados, sem custo extra na Azure. Em produção de verdade, usar um
+# serviço gerenciado ou um replica set com backup.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: default
+spec:
+  clusterIP: None # headless: endereço estável para o StatefulSet
+  selector:
+    app: mongodb
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: default
+spec:
+  serviceName: mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7
+          ports:
+            - name: mongodb
+              containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: password
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "768Mi"
+          readinessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 20
+            failureThreshold: 6 # o banco não deve ser morto por lentidão passageira do nó
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
