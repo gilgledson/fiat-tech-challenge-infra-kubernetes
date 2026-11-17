@@ -3,6 +3,11 @@ kind: Service
 metadata:
   name: traefik
   namespace: gateway
+  annotations:
+    # Nome público gratuito da Azure para o IP do gateway:
+    # oficina-fiap.brazilsouth.cloudapp.azure.com. É o domínio do certificado HTTPS e do
+    # webhook do Mercado Pago.
+    service.beta.kubernetes.io/azure-dns-label-name: oficina-fiap
 spec:
   type: LoadBalancer
   selector:
@@ -12,6 +17,10 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 80
+    - name: websecure
+      protocol: TCP
+      port: 443
+      targetPort: 443
 ---
 apiVersion: v1
 kind: Service
