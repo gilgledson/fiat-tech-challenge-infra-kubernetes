@@ -57,7 +57,7 @@ spec:
                   key: password
           resources:
             requests:
-              cpu: "100m"
+              cpu: "150m"
               memory: "256Mi"
             limits:
               cpu: "500m"
@@ -73,7 +73,8 @@ spec:
               command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
             initialDelaySeconds: 30
             periodSeconds: 30
-            timeoutSeconds: 10
+            timeoutSeconds: 20
+            failureThreshold: 6 # o banco não deve ser morto por lentidão passageira do nó
           volumeMounts:
             - name: data
               mountPath: /data/db
